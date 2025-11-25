@@ -13,3 +13,4 @@ venv/
 # Cache folders
 *.egg-info/
 .cache/
+.env
