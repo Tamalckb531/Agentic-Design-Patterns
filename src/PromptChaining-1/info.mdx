@@ -1,0 +1,15 @@
+# Overview
+
+Ai agent is all about calling the llm with prompt and then using the response technically to gain the desired result. 
+Now this prompt can behave invalid to llm if it is just plain and long paragraph. So we using prompt chaining or pipeline pattern where we divide the whole prompt in smaller part and then sent them into llm with proper method. We can also chain them in such way that on prompt answer can be used in the next prompt. Which makes the process modular and more close to be accurate
+
+## Thing to do
+
+- break the prompt in smaller unit
+- make it optimized and small for less spend of token
+- use json/toml for structuring prompt
+- have an optimized context window
+
+## Key stuff to know
+
+* The LLM calculates the next token based on everything it has seen so far (the prompt + all previous conversation history in that session). This entire block of text is the context window.
