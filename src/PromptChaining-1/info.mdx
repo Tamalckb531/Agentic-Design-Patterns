@@ -13,3 +13,7 @@ Now this prompt can behave invalid to llm if it is just plain and long paragraph
 ## Key stuff to know
 
 * The LLM calculates the next token based on everything it has seen so far (the prompt + all previous conversation history in that session). This entire block of text is the context window.
+
+## Context Engineering
+
+Context Engineering is the architectural design that ensures an LLM agent receives precise, relevant information. It involves dynamically managing the agent's System Prompt (identity), Memory (history), and available Tools (capabilities) within its Context Window to guarantee the agent acts reliably, accurately, and consistently across multi-step tasks.

@@ -4,6 +4,7 @@
   "description": "This contain all the codes of the concepts I learned from Agentic Design Patterns book",
   "main": "index.js",
   "scripts": {
+    "start": "tsx src/main.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
