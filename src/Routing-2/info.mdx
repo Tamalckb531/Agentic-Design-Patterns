@@ -1,0 +1,12 @@
+# Routing
+
+An agent can't have only one workflow cause user can ask for many things. So we can create routes to redirect the workflow in different sub-agents or functions according to user's query. 
+
+### Here are some kind of routing process :
+
+- LLM Based -> we can ask llm to categorize the query first and then select workflow for the query
+- Embedding based -> Basically used in RAG where query is matched with closest meaning vector embeddings and the redirect to different workflows
+- Rule based -> We set some predefined rule here and then write conditional logic to select the optimum workflow
+- ML model based -> Use a fine tuned discriminative model like classifier to select the workflow path
+
+** we use Langgraph mostly for routing pattern
