@@ -10,3 +10,6 @@ An agent can't have only one workflow cause user can ask for many things. So we 
 - ML model based -> Use a fine tuned discriminative model like classifier to select the workflow path
 
 ** we use Langgraph mostly for routing pattern
+
+### Code understanding
+We invoke agent with a request -> Call a sequence of routing steps with RunnableSequence.from() -> It first call the llm with request to get the classification and pass the input in pipeline as well-> Than call delegationBranch which conditionally identify route with RunnableBranch.from() then run sub-agents according to the route with RunnablePassthrough.assign and store the output -> it returns the output 
