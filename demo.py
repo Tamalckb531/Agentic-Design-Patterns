@@ -1,184 +1,156 @@
-import os
+import os, getpass
+
+import asyncio
+
+import nest_asyncio
+
+from typing import List
 
 from dotenv import load_dotenv
 
-from langchain_openai import ChatOpenAI
+import logging
+
+
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from langchain_core.prompts import ChatPromptTemplate
 
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.tools import tool as langchain_tool
 
+from langchain.agents import create_tool_calling_agent, AgentExecutor
 
-# --- Configuration ---
 
-# Load environment variables from .env file (for OPENAI_API_KEY)
+# UNCOMMENT
 
-load_dotenv()
+# Prompt the user securely and set API keys as an environment variables
 
+os.environ["GOOGLE_API_KEY"] = getpass.getpass("Enter your Google API key: ")
 
-# Check if the API key is set
+os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter your OpenAI API key: ")
 
-if not os.getenv("OPENAI_API_KEY"):
 
-   raise ValueError("OPENAI_API_KEY not found in .env file. Please add it.")
+try:
 
+  # A model with function/tool calling capabilities is required.
 
-# Initialize the Chat LLM. We use gpt-4o for better reasoning.
+  llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
 
-# A lower temperature is used for more deterministic outputs.
+  print(f"✅ Language model initialized: {llm.model}")
 
-llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
+except Exception as e:
 
+  print(f"🛑 Error initializing language model: {e}")
 
-def run_reflection_loop():
+  llm = None
 
-   """
 
-   Demonstrates a multi-step AI reflection loop to progressively improve a Python function.
+# --- Define a Tool ---
 
-   """
+@langchain_tool
 
-   # --- The Core Task ---
+def search_information(query: str) -> str:
 
-   task_prompt = """
+  """
 
-   Your task is to create a Python function named `calculate_factorial`.
+  Provides factual information on a given topic. Use this tool to find answers to phrases
 
-   This function should do the following:
+  like 'capital of France' or 'weather in London?'.
 
-   1.  Accept a single integer `n` as input.
+  """
 
-   2.  Calculate its factorial (n!).
+  print(f"\n--- 🛠️ Tool Called: search_information with query: '{query}' ---")
 
-   3.  Include a clear docstring explaining what the function does.
+  # Simulate a search tool with a dictionary of predefined results.
 
-   4.  Handle edge cases: The factorial of 0 is 1.
+  simulated_results = {
 
-   5.  Handle invalid input: Raise a ValueError if the input is a negative number.
+      "weather in london": "The weather in London is currently cloudy with a temperature of 15°C.",
 
-   """
+      "capital of france": "The capital of France is Paris.",
 
-   # --- The Reflection Loop ---
+      "population of earth": "The estimated population of Earth is around 8 billion people.",
 
-   max_iterations = 3
+      "tallest mountain": "Mount Everest is the tallest mountain above sea level.",
 
-   current_code = ""
+      "default": f"Simulated search result for '{query}': No specific information found, but the topic seems interesting."
 
-   # We will build a conversation history to provide context in each step.
+  }
 
-   message_history = [HumanMessage(content=task_prompt)]
+  result = simulated_results.get(query.lower(), simulated_results["default"])
 
+  print(f"--- TOOL RESULT: {result} ---")
 
+  return result
 
-   for i in range(max_iterations):
 
-       print("\n" + "="*25 + f" REFLECTION LOOP: ITERATION {i + 1} " + "="*25)
+tools = [search_information]
 
 
-       # --- 1. GENERATE / REFINE STAGE ---
+# --- Create a Tool-Calling Agent ---
 
-       # In the first iteration, it generates. In subsequent iterations, it refines.
+if llm:
 
-       if i == 0:
+  # This prompt template requires an `agent_scratchpad` placeholder for the agent's internal steps.
 
-           print("\n>>> STAGE 1: GENERATING initial code...")
+  agent_prompt = ChatPromptTemplate.from_messages([
 
-           # The first message is just the task prompt.
+      ("system", "You are a helpful assistant."),
 
-           response = llm.invoke(message_history)
+      ("human", "{input}"),
 
-           current_code = response.content
+      ("placeholder", "{agent_scratchpad}"),
 
-       else:
+  ])
 
-           print("\n>>> STAGE 1: REFINING code based on previous critique...")
 
-           # The message history now contains the task,
+  # Create the agent, binding the LLM, tools, and prompt together.
 
-           # the last code, and the last critique.
+  agent = create_tool_calling_agent(llm, tools, agent_prompt)
 
-           # We instruct the model to apply the critiques.
 
-           message_history.append(HumanMessage(content="Please refine the code using the critiques provided."))
+  # AgentExecutor is the runtime that invokes the agent and executes the chosen tools.
 
-           response = llm.invoke(message_history)
+  # The 'tools' argument is not needed here as they are already bound to the agent.
 
-           current_code = response.content
+  agent_executor = AgentExecutor(agent=agent, verbose=True, tools=tools)
 
 
-       print("\n--- Generated Code (v" + str(i + 1) + ") ---\n" + current_code)
+async def run_agent_with_tool(query: str):
 
-       message_history.append(response) # Add the generated code to history
+  """Invokes the agent executor with a query and prints the final response."""
 
+  print(f"\n--- 🏃 Running Agent with Query: '{query}' ---")
 
-       # --- 2. REFLECT STAGE ---
+  try:
 
-       print("\n>>> STAGE 2: REFLECTING on the generated code...")
+      response = await agent_executor.ainvoke({"input": query})
 
+      print("\n--- ✅ Final Agent Response ---")
 
-       # Create a specific prompt for the reflector agent.
+      print(response["output"])
 
-       # This asks the model to act as a senior code reviewer.
+  except Exception as e:
 
-       reflector_prompt = [
+      print(f"\n🛑 An error occurred during agent execution: {e}")
 
-           SystemMessage(content="""
 
-               You are a senior software engineer and an expert
+async def main():
 
-               in Python.
+  """Runs all agent queries concurrently."""
 
-               Your role is to perform a meticulous code review.
+  tasks = [
 
-               Critically evaluate the provided Python code based
+      run_agent_with_tool("What is the capital of France?"),
 
-               on the original task requirements.
+      run_agent_with_tool("What's the weather like in London?"),
 
-               Look for bugs, style issues, missing edge cases,
+      run_agent_with_tool("Tell me something about dogs.") # Should trigger the default tool response
 
-               and areas for improvement.
+  ]
 
-               If the code is perfect and meets all requirements,
+  await asyncio.gather(*tasks)
 
-               respond with the single phrase 'CODE_IS_PERFECT'.
 
-               Otherwise, provide a bulleted list of your critiques.
+nest_asyncio.apply()
 
-           """),
-
-           HumanMessage(content=f"Original Task:\n{task_prompt}\n\nCode to Review:\n{current_code}")
-
-       ]
-
-
-       critique_response = llm.invoke(reflector_prompt)
-
-       critique = critique_response.content
-
-
-       # --- 3. STOPPING CONDITION ---
-
-       if "CODE_IS_PERFECT" in critique:
-
-           print("\n--- Critique ---\nNo further critiques found. The code is satisfactory.")
-
-           break
-
-
-       print("\n--- Critique ---\n" + critique)
-
-       # Add the critique to the history for the next refinement loop.
-
-       message_history.append(HumanMessage(content=f"Critique of the previous code:\n{critique}"))
-
-
-   print("\n" + "="*30 + " FINAL RESULT " + "="*30)
-
-   print("\nFinal refined code after the reflection process:\n")
-
-   print(current_code)
-
-
-if __name__ == "__main__":
-
-   run_reflection_loop()
+asyncio.run(main())

@@ -1,0 +1,22 @@
+# Tools:
+Some functionalities that llm can use for a workflow to be done. These functionalities are written by the developer and provided to the llm 
+
+## Process:
+1. Tool Definition -> Functions described to the llm.
+2. LLM Decision -> LLM decide what function to use based on query
+3. Function call Generation -> LLM generating json object to call specific tool/function
+4. Tool Execution -> The function executed by system
+5. Observation -> The result returned to the agent
+6. LLM Processing -> LLM use the result to process a final response
+
+## Cons:
+It consume too much computation and needs too much token. 
+
+## Use Cases :
+
+- Information retrieval from external sources. (Weather api)
+- Interacting with databases and APIs (E-commerce query)
+- Performing calculations and Data Analysis (Finance Agent)
+- Sending Communications (Personal assistant)
+- Executing Code (Devin or Cursor)
+- Controlling Other systems or IOT (Smart Home Agent)
