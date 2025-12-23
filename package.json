@@ -11,6 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/adk": "^0.2.1",
+    "@google/adk-devtools": "^0.2.1",
     "@langchain/classic": "^1.0.7",
     "@langchain/core": "^1.1.7",
     "@langchain/google-genai": "^2.1.2",
