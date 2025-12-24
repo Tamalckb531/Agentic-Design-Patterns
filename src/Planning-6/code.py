@@ -1,103 +1,138 @@
-
 import os
 
 from dotenv import load_dotenv
 
 from crewai import Agent, Task, Crew, Process
 
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 
-# Load environment variables from .env file for security
+def setup_environment():
 
-load_dotenv()
+   """Loads environment variables and checks for the required API key."""
 
+   load_dotenv()
 
-# 1. Explicitly define the language model for clarity
+   if not os.getenv("GOOGLE_API_KEY"):
 
-llm = ChatOpenAI(model="gpt-4-turbo")
-
-
-# 2. Define a clear and focused agent
-
-planner_writer_agent = Agent(
-
-   role='Article Planner and Writer',
-
-   goal='Plan and then write a concise, engaging summary on a specified topic.',
-
-   backstory=(
-
-       'You are an expert technical writer and content strategist. '
-
-       'Your strength lies in creating a clear, actionable plan before writing, '
-
-       'ensuring the final summary is both informative and easy to digest.'
-
-   ),
-
-   verbose=True,
-
-   allow_delegation=False,
-
-   llm=llm # Assign the specific LLM to the agent
-
-)
+       raise ValueError("GOOGLE_API_KEY not found. Please set it in your .env file.")
 
 
-# 3. Define a task with a more structured and specific expected output
+def main():
 
-topic = "The importance of Reinforcement Learning in AI"
+   """
 
-high_level_task = Task(
+   Initializes and runs the AI crew for content creation using the latest Gemini model.
 
-   description=(
+   """
 
-       f"1. Create a bullet-point plan for a summary on the topic: '{topic}'.\n"
-
-       f"2. Write the summary based on your plan, keeping it around 200 words."
-
-   ),
-
-   expected_output=(
-
-       "A final report containing two distinct sections:\n\n"
-
-       "### Plan\n"
-
-       "- A bulleted list outlining the main points of the summary.\n\n"
-
-       "### Summary\n"
-
-       "- A concise and well-structured summary of the topic."
-
-   ),
-
-   agent=planner_writer_agent,
-
-)
+   setup_environment()
 
 
-# Create the crew with a clear process
+   # Define the language model to use.
 
-crew = Crew(
+   # Updated to a model from the Gemini 2.0 series for better performance and features.
 
-   agents=[planner_writer_agent],
+   # For cutting-edge (preview) capabilities, you could use "gemini-2.5-flash".
 
-   tasks=[high_level_task],
-
-   process=Process.sequential,
-
-)
+   llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
 
 
-# Execute the task
+   # Define Agents with specific roles and goals
 
-print("## Running the planning and writing task ##")
+   researcher = Agent(
 
-result = crew.kickoff()
+       role='Senior Research Analyst',
+
+       goal='Find and summarize the latest trends in AI.',
+
+       backstory="You are an experienced research analyst with a knack for identifying key trends and synthesizing information.",
+
+       verbose=True,
+
+       allow_delegation=False,
+
+   )
 
 
-print("\n\n---\n## Task Result ##\n---")
+   writer = Agent(
 
-print(result)
+       role='Technical Content Writer',
+
+       goal='Write a clear and engaging blog post based on research findings.',
+
+       backstory="You are a skilled writer who can translate complex technical topics into accessible content.",
+
+       verbose=True,
+
+       allow_delegation=False,
+
+   )
+
+
+   # Define Tasks for the agents
+
+   research_task = Task(
+
+       description="Research the top 3 emerging trends in Artificial Intelligence in 2024-2025. Focus on practical applications and potential impact.",
+
+       expected_output="A detailed summary of the top 3 AI trends, including key points and sources.",
+
+       agent=researcher,
+
+   )
+
+
+   writing_task = Task(
+
+       description="Write a 500-word blog post based on the research findings. The post should be engaging and easy for a general audience to understand.",
+
+       expected_output="A complete 500-word blog post about the latest AI trends.",
+
+       agent=writer,
+
+       context=[research_task],
+
+   )
+
+
+   # Create the Crew
+
+   blog_creation_crew = Crew(
+
+       agents=[researcher, writer],
+
+       tasks=[research_task, writing_task],
+
+       process=Process.sequential,
+
+       llm=llm,
+
+       verbose=2 # Set verbosity for detailed crew execution logs
+
+   )
+
+
+   # Execute the Crew
+
+   print("## Running the blog creation crew with Gemini 2.0 Flash... ##")
+
+   try:
+
+       result = blog_creation_crew.kickoff()
+
+       print("\n------------------\n")
+
+       print("## Crew Final Output ##")
+
+       print(result)
+
+   except Exception as e:
+
+       print(f"\nAn unexpected error occurred: {e}")
+
+
+
+if __name__ == "__main__":
+
+   main()
