@@ -1,60 +1,74 @@
 
-from langchain_openai import ChatOpenAI
+from langgraph.store.memory import InMemoryStore
 
-from langchain.chains import LLMChain
 
-from langchain.memory import ConversationBufferMemory
+# A placeholder for a real embedding function
 
-from langchain_core.prompts import (
+def embed(texts: list[str]) -> list[list[float]]:
 
-   ChatPromptTemplate,
+   # In a real application, use a proper embedding model
 
-   MessagesPlaceholder,
+   return [[1.0, 2.0] for _ in texts]
 
-   SystemMessagePromptTemplate,
 
-   HumanMessagePromptTemplate,
+# Initialize an in-memory store. For production, use a database-backed store.
+
+store = InMemoryStore(index={"embed": embed, "dims": 2})
+
+
+# Define a namespace for a specific user and application context
+
+user_id = "my-user"
+
+application_context = "chitchat"
+
+namespace = (user_id, application_context)
+
+
+# 1. Put a memory into the store
+
+store.put(
+
+   namespace,
+
+   "a-memory",  # The key for this memory
+
+   {
+
+       "rules": [
+
+           "User likes short, direct language",
+
+           "User only speaks English & python",
+
+       ],
+
+       "my-key": "my-value",
+
+   },
 
 )
 
 
-# 1. Define Chat Model and Prompt
+# 2. Get the memory by its namespace and key
 
-llm = ChatOpenAI()
+item = store.get(namespace, "a-memory")
 
-prompt = ChatPromptTemplate(
+print("Retrieved Item:", item)
 
-   messages=[
 
-       SystemMessagePromptTemplate.from_template("You are a friendly assistant."),
+# 3. Search for memories within the namespace, filtering by content
 
-       MessagesPlaceholder(variable_name="chat_history"),
+# and sorting by vector similarity to the query.
 
-       HumanMessagePromptTemplate.from_template("{question}")
+items = store.search(
 
-   ]
+   namespace,
+
+   filter={"my-key": "my-value"},
+
+   query="language preferences"
 
 )
 
-
-# 2. Configure Memory
-
-# return_messages=True is essential for chat models
-
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-
-
-# 3. Build the Chain
-
-conversation = LLMChain(llm=llm, prompt=prompt, memory=memory)
-
-
-# 4. Run the Conversation
-
-response = conversation.predict(question="Hi, I'm Jane.")
-
-print(response)
-
-response = conversation.predict(question="Do you remember my name?")
-
-print(response)
+print("Search Results:", items)
